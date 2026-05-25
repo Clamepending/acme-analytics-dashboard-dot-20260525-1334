@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { existsSync } from "node:fs";
 
@@ -36,6 +36,7 @@ const server = createServer(async (request, response) => {
 
 await new Promise(resolve => server.listen(port, "127.0.0.1", resolve));
 console.log(`server listening: http://127.0.0.1:${port}/docs/`);
+await mkdir("output/playwright", { recursive: true });
 
 const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const launchOptions = process.env.USE_SYSTEM_CHROME && existsSync(chromePath) ? { executablePath: chromePath } : {};
@@ -47,20 +48,30 @@ try {
   page.setDefaultTimeout(10000);
   await page.goto(`http://127.0.0.1:${port}/docs/`, { waitUntil: "domcontentloaded", timeout: 15000 });
   console.log("page loaded");
-  await page.getByRole("heading", { name: "Acme Analytics" }).waitFor();
+  await page.getByRole("heading", { name: "Product analytics" }).waitFor();
   await page.getByText("Activation funnel").waitFor();
-  await page.getByText("Weekly retention").waitFor();
+  await page.getByText("Cohort retention").waitFor();
   await page.getByText("Feature flags").first().waitFor();
   await page.getByText("Live event stream").waitFor();
-  await page.getByRole("button", { name: "7d" }).click();
-  await page.getByLabel("Search analytics").fill("feature_flag_called");
-  await page.getByText("feature_flag_called").first().waitFor();
-  await page.getByLabel("Search analytics").fill("");
-  await page.getByLabel("Toggle new-query-builder").click();
-  await page.getByText("2/5 enabled").waitFor();
-  await page.getByTitle("Toggle dark mode").click();
+  await page.locator("#eventChart").evaluate(canvas => {
+    const ctx = canvas.getContext("2d");
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    if (!pixels.some((value, index) => index % 4 !== 3 && value !== 0)) throw new Error("event chart is blank");
+  });
+  await page.getByRole("button", { name: /Events/ }).click();
+  await page.locator("#search").fill("signup");
+  await page.getByText("signup").first().waitFor();
+  await page.locator("#search").fill("");
+  await page.getByRole("button", { name: /Flags/ }).click();
+  const firstSwitch = page.locator(".switch").first();
+  await firstSwitch.click();
+  await firstSwitch.evaluate(el => {
+    if (!el.classList.contains("off")) throw new Error("feature flag toggle did not switch off");
+  });
+  await page.locator("#range").selectOption("Last 7 days");
+  await page.getByRole("button", { name: "Refresh data" }).click();
   await page.screenshot({ path: "output/playwright/dashboard-smoke.png", fullPage: true });
-  console.log("smoke passed: dashboard sections, chart controls, search, flag toggle, and theme toggle work");
+  console.log("smoke passed: dashboard sections, canvas chart, search, nav, range, refresh, and flag toggle work");
 } finally {
   await browser.close().catch(() => {});
   await new Promise(resolve => server.close(resolve));
