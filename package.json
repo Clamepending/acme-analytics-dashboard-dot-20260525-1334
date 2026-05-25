@@ -1,0 +1,13 @@
+{
+  "name": "acme-analytics-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "PLAYWRIGHT_BROWSER=firefox node test-smoke.mjs",
+    "serve": "python3 -m http.server 8080"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
