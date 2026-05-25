@@ -1,18 +1,18 @@
-# Acme Analytics
+# Hoglet Analytics
 
-Compact PostHog-style analytics dashboard with mock events, funnels, retention cohorts, saved cohorts, and feature flags.
+Static PostHog-style product analytics dashboard served from `docs/index.html`. It uses mock telemetry for event volume, live events, funnels, retention cohorts, saved cohorts, feature flags, and experiment impact. There is no build step; the page is plain HTML, CSS, and JavaScript.
 
 ## Run locally
 
 ```bash
-python3 -m http.server 8080
+npm run serve
 ```
 
 Open `http://127.0.0.1:8080/docs/`.
 
-You can also open `docs/index.html` directly in a browser. The chart uses Chart.js from jsDelivr, so the polished chart view expects network access.
+You can also open `docs/index.html` directly in a browser. The dashboard has no runtime dependency on a CDN or API.
 
-## Verify
+## Browser smoke test
 
 ```bash
 npm install
@@ -20,33 +20,28 @@ npx playwright install firefox
 npm test
 ```
 
-Or run the smoke script directly after dependencies are installed:
-
-```bash
-PLAYWRIGHT_BROWSER=firefox node test-smoke.mjs
-```
-
-The smoke test starts a local static server, opens the dashboard in Firefox, checks the major sections and interactions, and writes a screenshot to `output/playwright/dashboard-smoke.png`.
+`npm test` runs `PLAYWRIGHT_BROWSER=firefox node test-smoke.mjs`. The script starts a local static server at `http://127.0.0.1:4173/docs/`, checks the dashboard sections, canvas chart, search, navigation, date range, refresh button, and feature flag toggle, then writes `output/playwright/dashboard-smoke.png`.
 
 ## Free static hosting
 
 ### Netlify Drop
 
-1. Open `https://app.netlify.com/drop`.
-2. Drag the `docs/` folder into the drop target.
-3. Netlify publishes the folder as a static site and shows the public URL.
+1. Go to `https://app.netlify.com/drop`.
+2. Drag the `docs/` folder onto the drop target.
+3. Netlify publishes `docs/index.html` as the site root and gives you a public URL.
 
-### GitHub Pages
+### GitHub Pages from `/docs`
 
-1. Create a public GitHub repository.
-2. Push this working directory to the repository.
-3. In GitHub, open `Settings -> Pages`.
-4. Set `Source` to `Deploy from a branch`.
-5. Select the branch, set the folder to `/docs`, and save.
-6. GitHub Pages will publish at `https://<user>.github.io/<repo>/`.
+1. Push this repository to GitHub.
+2. Open the repository `Settings -> Pages`.
+3. Set `Source` to `Deploy from a branch`.
+4. Select your branch and set the folder to `/docs`.
+5. Save. The site publishes at `https://<user>.github.io/<repo>/`.
 
 ### Vercel
 
-1. Create a new Vercel project from this repository.
-2. Set the output/static directory to `docs`.
-3. Deploy using the free Hobby plan.
+1. Import this repository at `https://vercel.com/new`.
+2. In project settings, set Framework Preset to `Other`.
+3. Leave Build Command empty.
+4. Set Output Directory to `docs`.
+5. Deploy on the free Hobby plan.
