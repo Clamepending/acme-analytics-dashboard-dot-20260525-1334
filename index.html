@@ -19,6 +19,16 @@
       --shadow: 0 1px 0 rgba(23,23,23,.08), 0 10px 26px rgba(23,23,23,.08);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
+    body.dark {
+      --ink: #f6efe4;
+      --muted: #c8bfb4;
+      --line: #4b443d;
+      --paper: #171412;
+      --panel: #221e1a;
+      --accent: #ff7a2b;
+      --accent-2: #35a7a9;
+      --shadow: 0 1px 0 rgba(255,255,255,.04), 0 10px 26px rgba(0,0,0,.22);
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -36,6 +46,11 @@
       top: 0;
       height: 100vh;
     }
+    body.dark .sidebar, body.dark header { background: rgba(34,30,26,.9); }
+    body.dark .nav button.active, body.dark .nav button:hover { background: #3a3028; }
+    body.dark .bar, body.dark .step .track { background: #3f3831; }
+    body.dark th, body.dark td { border-bottom-color: #3f3831; }
+    body.dark .flag { background: #28231f; border-color: #4b443d; }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; margin-bottom: 20px; }
     .mark { width: 30px; height: 30px; border: 2px solid var(--ink); border-radius: 7px; background: var(--accent); box-shadow: 4px 4px 0 var(--ink); }
     .nav { display: grid; gap: 5px; }
@@ -132,12 +147,14 @@
       <header>
         <div>
           <h1>Product analytics</h1>
-          <div class="sub">Mock telemetry for web, billing, activation, and experiment health.</div>
+          <div class="sub">Acme Analytics · mock telemetry for web, billing, activation, and experiment health.</div>
         </div>
         <div class="controls">
           <input class="search" id="search" placeholder="Filter events or cohorts">
+          <select id="eventType" aria-label="Event type filter"><option>All events</option></select>
           <select id="range"><option>Last 7 days</option><option selected>Last 30 days</option><option>Last 90 days</option></select>
           <button class="pill" id="refresh">Refresh data</button>
+          <button class="pill" id="themeToggle" aria-pressed="false">Dark</button>
         </div>
       </header>
       <section class="content">
@@ -160,7 +177,7 @@
         <section class="grid-2 section" data-panel="events">
           <div class="card">
             <div class="card-head"><h2>Live event stream</h2><span class="status"><span class="dot"></span>receiving</span></div>
-            <table><thead><tr><th>Event</th><th>User</th><th>Source</th><th>When</th><th>Value</th></tr></thead><tbody id="eventRows"></tbody></table>
+            <table><thead><tr><th>Timestamp</th><th>Event</th><th>User ID</th><th>Page</th><th>Device</th><th>Country</th></tr></thead><tbody id="eventRows"></tbody></table>
           </div>
           <div class="card">
             <div class="card-head"><h2>Sources</h2><span class="eyebrow">share</span></div>
@@ -169,7 +186,7 @@
         </section>
         <section class="grid-3 section" data-panel="funnels">
           <div class="card" style="grid-column: span 2;">
-            <div class="card-head"><h2>Activation funnel</h2><span class="eyebrow">users</span></div>
+            <div class="card-head"><h2>Activation funnel</h2><select id="funnelPreset" aria-label="Funnel preset"><option>Signup to paid</option><option>Invite collaboration</option></select></div>
             <div class="funnel" id="funnel"></div>
           </div>
           <div class="card">
@@ -184,7 +201,7 @@
         <section class="grid-2 section" data-panel="cohorts">
           <div class="card">
             <div class="card-head"><h2>Cohorts</h2><span class="eyebrow">dynamic</span></div>
-            <table><thead><tr><th>Name</th><th>Users</th><th>Rule</th><th>Status</th></tr></thead><tbody id="cohortRows"></tbody></table>
+            <table><thead><tr><th>Name</th><th>Size</th><th>Avg session</th><th>Top events</th><th>Status</th></tr></thead><tbody id="cohortRows"></tbody></table>
           </div>
           <div class="card">
             <div class="card-head"><h2>Cohort overlap</h2><span class="eyebrow">selected</span></div>
@@ -205,28 +222,36 @@
     </main>
   </div>
   <script>
-    const names = ["pageview", "signup started", "signup completed", "project created", "invite sent", "checkout opened", "subscription paid", "dashboard shared"];
+    const names = ["pageview", "button_click", "form_submit", "signup", "purchase", "logout"];
     const sources = ["web", "docs", "app", "billing", "api"];
+    const pages = ["/", "/pricing", "/signup", "/dashboard", "/billing", "/settings"];
+    const devices = ["desktop", "mobile", "tablet"];
+    const countries = ["US", "GB", "JP", "DE", "CA"];
     const cohorts = [
-      ["Activated teams", 1842, "project_created >= 1 and invite_sent >= 1", "healthy"],
-      ["Billing intent", 621, "checkout_opened in last 14 days", "watch"],
-      ["Power users", 388, "events > 80 in 30 days", "healthy"],
-      ["At-risk trials", 274, "trial and no event in 5 days", "risk"],
-      ["Data warehouse users", 146, "source = warehouse", "healthy"]
+      ["Activated teams", 1842, "14m 32s", "signup, button_click", "healthy"],
+      ["Billing intent", 621, "9m 05s", "pageview, purchase", "watch"],
+      ["Power users", 388, "24m 18s", "button_click, form_submit", "healthy"],
+      ["At-risk trials", 274, "2m 44s", "pageview, logout", "risk"],
+      ["Data warehouse users", 146, "18m 11s", "form_submit, purchase", "healthy"]
     ];
     const flags = [
-      ["new-query-builder", "Teams plan", 76, true],
-      ["ai-insight-summary", "Beta cohort", 38, true],
-      ["billing-v2", "Internal + 12 accounts", 14, true],
-      ["session-replay-lite", "Free plan", 0, false]
+      ["new-query-builder", "Activated teams, Power users", 76, true],
+      ["ai-insight-summary", "Power users, Data warehouse users", 38, true],
+      ["billing-v2", "Billing intent, Internal accounts", 14, true],
+      ["session-replay-lite", "Free plan, At-risk trials", 0, false]
     ];
+    const funnels = {
+      "Signup to paid": [["Visit",9820],["Signup started",4210],["Signup complete",3104],["Project created",2237],["Paid",931]],
+      "Invite collaboration": [["Project created",5220],["Invite opened",3380],["Invite accepted",2190],["First shared insight",1274],["Team activated",844]]
+    };
     let seed = 42;
+    let liveTick = 0;
     const rand = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
     const fmt = n => new Intl.NumberFormat("en-US").format(Math.round(n));
     function makeData() {
       const days = Array.from({length: 30}, (_, i) => ({day: i + 1, events: 2600 + Math.sin(i / 3) * 420 + rand() * 760}));
       const total = days.reduce((s, d) => s + d.events, 0);
-      const eventCounts = names.map((name, i) => [name, Math.round(total * ([.28,.14,.1,.13,.09,.08,.06,.12][i] + rand() * .025))]).sort((a,b)=>b[1]-a[1]);
+      const eventCounts = names.map((name, i) => [name, Math.round(total * ([.3,.18,.15,.14,.11,.08][i] + rand() * .025))]).sort((a,b)=>b[1]-a[1]);
       return {days, total, users: 12840 + rand() * 1200, eventCounts};
     }
     let data = makeData();
@@ -261,13 +286,20 @@
       bars(document.getElementById("sources"), sources.map(s=>[s, 800 + rand()*2200]).sort((a,b)=>b[1]-a[1]), "#f54e00");
       bars(document.getElementById("dropoffs"), [["No data connected",31],["Team not invited",24],["Pricing review",19],["Missing SSO",13]], "#bd2c2c");
       bars(document.getElementById("experiments"), [["Query builder",8.4],["AI summaries",5.1],["Billing v2",2.7],["Replay lite",0.0]], "#238b45");
-      document.getElementById("funnel").innerHTML = [["Visit",9820],["Signup started",4210],["Signup complete",3104],["Project created",2237],["Paid",931]].map((s,i,a)=>`<div class="step"><strong>${s[0]}</strong><div class="track"><div class="fill" style="width:${s[1]/a[0][1]*100}%">${Math.round(s[1]/a[0][1]*100)}%</div></div><span>${fmt(s[1])}</span></div>`).join("");
-      document.getElementById("eventRows").innerHTML = Array.from({length: 12}, (_, i) => {
-        const ev = names[Math.floor(rand()*names.length)], src = sources[Math.floor(rand()*sources.length)];
-        return `<tr><td>${ev}</td><td>user_${Math.floor(1000+rand()*8999)}</td><td>${src}</td><td>${i+1}m ago</td><td>$${Math.floor(rand()*240)}</td></tr>`;
+      const selectedFunnel = document.getElementById("funnelPreset").value;
+      document.getElementById("funnel").innerHTML = funnels[selectedFunnel].map((s,i,a)=>{
+        const conv = Math.round(s[1]/a[0][1]*100);
+        const drop = i ? Math.round((1 - s[1]/a[i-1][1]) * 100) : 0;
+        return `<div class="step"><strong>${s[0]}</strong><div class="track"><div class="fill" style="width:${conv}%">${conv}%</div></div><span>${fmt(s[1])}${i ? ` · ${drop}% drop` : ""}</span></div>`;
       }).join("");
-      document.getElementById("cohortRows").innerHTML = cohorts.map(c=>`<tr><td>${c[0]}</td><td>${fmt(c[1])}</td><td>${c[2]}</td><td><span class="status"><span class="dot ${c[3]==="risk"?"bad":c[3]==="watch"?"warn":""}"></span>${c[3]}</span></td></tr>`).join("");
-      document.getElementById("flags").innerHTML = flags.map(f=>`<div class="flag"><div><strong>${f[0]}</strong><div class="sub">${f[1]} · ${f[2]}% rollout</div></div><div class="switch ${f[3]?"":"off"}" role="switch" aria-checked="${f[3]}"><span class="knob"></span></div></div>`).join("");
+      document.getElementById("eventRows").innerHTML = Array.from({length: 12}, (_, i) => {
+        const ev = names[(Math.floor(rand()*names.length) + liveTick + i) % names.length];
+        const page = pages[Math.floor(rand()*pages.length)], device = devices[Math.floor(rand()*devices.length)], country = countries[Math.floor(rand()*countries.length)];
+        const timestamp = new Date(Date.now() - (i + liveTick) * 19000).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit", second: "2-digit"});
+        return `<tr data-event="${ev}"><td>${timestamp}</td><td>${ev}</td><td>user_${Math.floor(1000+rand()*8999)}</td><td>${page}</td><td>${device}</td><td>${country}</td></tr>`;
+      }).join("");
+      document.getElementById("cohortRows").innerHTML = cohorts.map(c=>`<tr><td>${c[0]}</td><td>${fmt(c[1])}</td><td>${c[2]}</td><td>${c[3]}</td><td><span class="status"><span class="dot ${c[4]==="risk"?"bad":c[4]==="watch"?"warn":""}"></span>${c[4]}</span></td></tr>`).join("");
+      document.getElementById("flags").innerHTML = flags.map(f=>`<div class="flag"><div><strong>${f[0]}</strong><div class="sub">Cohorts: ${f[1]} · ${f[2]}% rollout</div></div><div class="switch ${f[3]?"":"off"}" role="switch" aria-checked="${f[3]}"><span class="knob"></span></div></div>`).join("");
       const head = ["Cohort","W0","W1","W2","W3","W4","W5","W6","W7"];
       const rows = ["May 20","May 13","May 6","Apr 29","Apr 22"].map((r,i)=>[r, ...Array.from({length:8},(_,j)=>Math.max(8, 74 - i*5 - j*8 + rand()*9))]);
       document.getElementById("retention").innerHTML = head.map((h,i)=>`<strong class="${i>4?"hide-sm":""}">${h}</strong>`).join("") + rows.map(r=>r.map((v,i)=> i ? `<div class="cell h${Math.min(4,Math.ceil(v/22))} ${i>4?"hide-sm":""}">${Math.round(v)}%</div>` : `<strong>${v}</strong>`).join("")).join("");
@@ -275,8 +307,14 @@
     }
     function filter() {
       const q = document.getElementById("search").value.toLowerCase();
-      document.querySelectorAll("tbody tr, .flag, .bar-row").forEach(el => el.classList.toggle("hidden", q && !el.textContent.toLowerCase().includes(q)));
+      const eventType = document.getElementById("eventType").value;
+      document.querySelectorAll("tbody tr, .flag, .bar-row").forEach(el => {
+        const textMatch = !q || el.textContent.toLowerCase().includes(q);
+        const eventMatch = !el.dataset.event || eventType === "All events" || el.dataset.event === eventType;
+        el.classList.toggle("hidden", !textMatch || !eventMatch);
+      });
     }
+    document.getElementById("eventType").innerHTML += names.map(name => `<option>${name}</option>`).join("");
     document.querySelectorAll(".nav button").forEach(btn => btn.addEventListener("click", () => {
       document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active")); btn.classList.add("active");
       const sec = btn.dataset.section;
@@ -284,10 +322,18 @@
       if (sec === "overview") document.querySelectorAll(".section").forEach(p => p.classList.remove("hidden"));
     }));
     document.getElementById("search").addEventListener("input", filter);
+    document.getElementById("eventType").addEventListener("change", filter);
     document.getElementById("refresh").addEventListener("click", () => { data = makeData(); render(); });
     document.getElementById("range").addEventListener("change", () => { data = makeData(); render(); });
+    document.getElementById("funnelPreset").addEventListener("change", render);
+    document.getElementById("themeToggle").addEventListener("click", e => {
+      const dark = document.body.classList.toggle("dark");
+      e.currentTarget.textContent = dark ? "Light" : "Dark";
+      e.currentTarget.setAttribute("aria-pressed", String(dark));
+    });
     document.addEventListener("click", e => { const sw = e.target.closest(".switch"); if (sw) { sw.classList.toggle("off"); sw.setAttribute("aria-checked", !sw.classList.contains("off")); } });
     render();
+    setInterval(() => { liveTick += 1; render(); }, 3500);
   </script>
 </body>
 </html>
