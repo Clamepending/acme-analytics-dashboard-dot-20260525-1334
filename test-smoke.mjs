@@ -71,6 +71,15 @@ try {
   await page.locator("#range").selectOption("Last 7 days");
   await page.getByRole("button", { name: "Refresh data" }).click();
   await page.screenshot({ path: "output/playwright/dashboard-smoke.png", fullPage: true });
+  const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await mobile.goto(`http://127.0.0.1:${port}/docs/`, { waitUntil: "domcontentloaded", timeout: 15000 });
+  await mobile.getByRole("heading", { name: "Product analytics" }).waitFor();
+  await mobile.getByRole("button", { name: /Retention/ }).click();
+  await mobile.getByText("Cohort retention").waitFor();
+  const overflow = await mobile.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  if (overflow) throw new Error("mobile layout has horizontal overflow");
+  await mobile.screenshot({ path: "output/playwright/dashboard-mobile.png", fullPage: true });
+  await mobile.close();
   console.log("smoke passed: dashboard sections, canvas chart, search, nav, range, refresh, and flag toggle work");
 } finally {
   await browser.close().catch(() => {});
