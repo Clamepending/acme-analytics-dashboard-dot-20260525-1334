@@ -1,8 +1,8 @@
 # Hoglet Analytics
 
-Static PostHog-style product analytics dashboard served from `docs/index.html`. It uses mock telemetry for event volume, live events, funnels, retention cohorts, saved cohorts, feature flags, and experiment impact. There is no build step; the page is plain HTML, CSS, and JavaScript.
+Compact PostHog-style analytics dashboard served from `docs/index.html`. It uses mock product telemetry for event volume, live events, funnels, retention cohorts, saved cohorts, feature flags, and experiment impact. There is no build step; the app is plain HTML, CSS, and JavaScript.
 
-## Run locally
+## Local Run
 
 ```bash
 npm run serve
@@ -12,7 +12,7 @@ Open `http://127.0.0.1:8080/docs/`.
 
 You can also open `docs/index.html` directly in a browser. The dashboard has no runtime dependency on a CDN or API.
 
-## Browser smoke test
+## Test
 
 ```bash
 npm install
@@ -20,28 +20,47 @@ npx playwright install firefox
 npm test
 ```
 
-`npm test` runs `PLAYWRIGHT_BROWSER=firefox node test-smoke.mjs`. The script starts a local static server at `http://127.0.0.1:4173/docs/`, checks the dashboard sections, canvas chart, search, navigation, date range, refresh button, and feature flag toggle, then writes `output/playwright/dashboard-smoke.png`.
+`npm test` runs `PLAYWRIGHT_BROWSER=firefox node test-smoke.mjs`. The smoke test starts a local static server on an ephemeral `127.0.0.1` port, checks the dashboard sections, event schema and filter, live stream updates, preset funnels, cohort fields, feature flag cohort access, dark mode, date range, refresh button, canvas charts, and mobile overflow, then writes screenshots to `output/playwright/`.
 
-## Free static hosting
+## Free Static Hosting
+
+### GitHub Pages
+
+1. Push this repository to GitHub.
+2. In GitHub, open the repository.
+3. Go to `Settings` -> `Pages`.
+4. Under `Build and deployment`, set `Source` to `Deploy from a branch`.
+5. Select the target branch, usually `main`.
+6. Set the folder to `/docs`.
+7. Click `Save`.
+8. After GitHub finishes publishing, open `https://<user-or-org>.github.io/<repo>/`.
 
 ### Netlify Drop
 
 1. Go to `https://app.netlify.com/drop`.
-2. Drag the `docs/` folder onto the drop target.
-3. Netlify publishes `docs/index.html` as the site root and gives you a public URL.
+2. Sign in or create a free Netlify account if prompted.
+3. Drag the local `docs/` folder onto the drop target.
+4. Netlify serves `docs/index.html` as the site root and provides a generated public URL.
 
-### GitHub Pages from `/docs`
+### Cloudflare Pages
 
-1. Push this repository to GitHub.
-2. Open the repository `Settings -> Pages`.
-3. Set `Source` to `Deploy from a branch`.
-4. Select your branch and set the folder to `/docs`.
-5. Save. The site publishes at `https://<user>.github.io/<repo>/`.
+1. Push this repository to GitHub or GitLab.
+2. Go to `https://dash.cloudflare.com/` and choose `Workers & Pages`.
+3. Click `Create application` -> `Pages` -> `Connect to Git`.
+4. Select the repository and click `Begin setup`.
+5. Set `Framework preset` to `None`.
+6. Leave `Build command` empty.
+7. Set `Build output directory` to `docs`.
+8. Click `Save and Deploy`.
+9. After the free Pages build finishes, open the generated `*.pages.dev` URL.
 
 ### Vercel
 
-1. Import this repository at `https://vercel.com/new`.
-2. In project settings, set Framework Preset to `Other`.
-3. Leave Build Command empty.
-4. Set Output Directory to `docs`.
-5. Deploy on the free Hobby plan.
+1. Push this repository to GitHub, GitLab, or Bitbucket.
+2. Go to `https://vercel.com/new`.
+3. Import the repository on the free Hobby plan.
+4. Set `Framework Preset` to `Other`.
+5. Leave `Build Command` empty.
+6. Set `Output Directory` to `docs`.
+7. Click `Deploy`.
+8. After Vercel finishes, open the generated `*.vercel.app` URL.
